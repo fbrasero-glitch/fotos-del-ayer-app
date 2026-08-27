@@ -34,13 +34,48 @@ class SocialPublisher:
 
     graph_version = "v23.0"
 
+    @staticmethod
+    def _facebook_token() -> str:
+        """Return a Facebook Page token without confusing it with an IG token."""
+        dedicated = _value("META_FB_PAGE_ACCESS_TOKEN")
+        if dedicated:
+            return dedicated
+        legacy = _value("META_PAGE_ACCESS_TOKEN")
+        return "" if legacy.startswith("IG") else legacy
+
+    @staticmethod
+    def _instagram_token() -> str:
+        """Return the Instagram token, keeping the old shared setting compatible."""
+        return _value("META_IG_ACCESS_TOKEN") or _value("META_PAGE_ACCESS_TOKEN")
+
+    @staticmethod
+    def _instagram_graph_base(token: str) -> str:
+        """Select the Graph host that matches the connected Instagram product.
+
+        Instagram Login issues ``IG...`` tokens and uses graph.instagram.com.
+        Facebook Login/Page tokens keep using graph.facebook.com.  Supporting
+        both prevents a valid Instagram Login token from being sent to the
+        wrong Graph host.
+        """
+        host = "graph.instagram.com" if token.startswith("IG") else "graph.facebook.com"
+        return f"https://{host}/{SocialPublisher.graph_version}"
+
     def connection(self, network: str) -> SocialConnection:
         required = {
-            "facebook": ("META_PAGE_ID", "META_PAGE_ACCESS_TOKEN"),
-            "instagram": ("META_IG_USER_ID", "META_PAGE_ACCESS_TOKEN"),
+            "facebook": ("META_PAGE_ID",),
+            "instagram": ("META_IG_USER_ID",),
             "tiktok": ("TIKTOK_ACCESS_TOKEN",),
         }
-        missing = [name for name in required[network] if not _value(name)]
+        if network == "facebook":
+            token = self._facebook_token()
+            missing = ["META_FB_PAGE_ACCESS_TOKEN"] if not token else []
+        elif network == "instagram":
+            token = self._instagram_token()
+            missing = ["META_IG_ACCESS_TOKEN"] if not token else []
+        else:
+            missing = [name for name in required[network] if not _value(name)]
+        missing.extend(name for name in required[network] if not _value(name))
+        missing = list(dict.fromkeys(missing))
         if missing:
             return SocialConnection(network, False, "Falta configurar: " + ", ".join(missing))
         return SocialConnection(network, True, "Cuenta lista para publicar")
@@ -66,11 +101,12 @@ class SocialPublisher:
         if not connection.connected:
             raise SocialConfigurationError(connection.message)
         if network == "instagram":
-            token, account_id = _value("META_PAGE_ACCESS_TOKEN"), _value("META_IG_USER_ID")
-            status = self._request("GET", f"https://graph.facebook.com/{self.graph_version}/{remote_id}", params={"fields": "status_code,status", "access_token": token})
+            token, account_id = self._instagram_token(), _value("META_IG_USER_ID")
+            graph_base = self._instagram_graph_base(token)
+            status = self._request("GET", f"{graph_base}/{remote_id}", params={"fields": "status_code,status", "access_token": token})
             if status.get("status_code") != "FINISHED":
                 return {"remote_id": remote_id, "remote_url": "", "status": "procesando"}
-            published = self._request("POST", f"https://graph.facebook.com/{self.graph_version}/{account_id}/media_publish", data={"creation_id": remote_id, "access_token": token})
+            published = self._request("POST", f"{graph_base}/{account_id}/media_publish", data={"creation_id": remote_id, "access_token": token})
             media_id = str(published["id"])
             return {"remote_id": media_id, "remote_url": f"https://www.instagram.com/p/{media_id}/", "status": "publicado"}
         if network == "tiktok":
@@ -99,7 +135,7 @@ class SocialPublisher:
         return payload
 
     def _facebook(self, video: Path, caption: str) -> dict[str, str]:
-        token, page_id = _value("META_PAGE_ACCESS_TOKEN"), _value("META_PAGE_ID")
+        token, page_id = self._facebook_token(), _value("META_PAGE_ID")
         base = f"https://graph.facebook.com/{self.graph_version}/{page_id}/video_reels"
         started = self._request("POST", base, data={"upload_phase": "start", "access_token": token})
         video_id, upload_url = started["video_id"], started["upload_url"]
@@ -112,8 +148,8 @@ class SocialPublisher:
         return {"remote_id": remote_id, "remote_url": f"https://www.facebook.com/{remote_id}"}
 
     def _instagram(self, video: Path, caption: str) -> dict[str, str]:
-        token, account_id = _value("META_PAGE_ACCESS_TOKEN"), _value("META_IG_USER_ID")
-        base = f"https://graph.facebook.com/{self.graph_version}/{account_id}"
+        token, account_id = self._instagram_token(), _value("META_IG_USER_ID")
+        base = f"{self._instagram_graph_base(token)}/{account_id}"
         container = self._request("POST", f"{base}/media", data={"media_type": "REELS", "upload_type": "resumable", "caption": caption, "access_token": token})
         container_id = container["id"]
         with video.open("rb") as handle:
