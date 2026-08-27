@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+youtube_oauth_client.json
+youtube_token.json
+client_secret_*.json
+
+data/*.db
+data/*.db-*
+data/photos/*
+!data/photos/.gitkeep
