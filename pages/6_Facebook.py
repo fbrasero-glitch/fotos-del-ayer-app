@@ -20,6 +20,12 @@ SAVED_BATCH_DIR = ROOT / "data" / "facebook_upload" / "library"
 SOURCE_SAVED = "Lote guardado"
 SOURCE_UPLOAD = "Seleccionar archivos"
 
+
+def _save_and_select_saved_batch(uploaded_by_name: dict[str, object]) -> None:
+    persist_batch_files(uploaded_by_name, EXPECTED.values(), SAVED_BATCH_DIR)
+    st.session_state["facebook_video_source"] = SOURCE_SAVED
+
+
 st.set_page_config(page_title="Fotos del Ayer · Facebook", page_icon=":material/video_library:", layout="wide")
 st.title("Fotos del Ayer · Facebook")
 st.caption("Lote inicial de cuatro reels, publicado en orden inverso al de YouTube.")
@@ -83,9 +89,9 @@ with st.container(border=True):
                 "Guardar este lote para reutilizarlo",
                 icon=":material/save:",
                 help="Conserva los cuatro MP4 en el almacenamiento de la app para no tener que seleccionarlos otra vez.",
+                on_click=_save_and_select_saved_batch,
+                args=(uploaded_by_name,),
             ):
-                with st.spinner("Guardando el lote…"):
-                    active_paths = persist_batch_files(uploaded_by_name, EXPECTED.values(), SAVED_BATCH_DIR)
                 st.success("Lote guardado. En la próxima visita podrás usarlo automáticamente.")
 
         if not active_paths:
