@@ -140,7 +140,17 @@ class SocialPublisher:
         started = self._request("POST", base, data={"upload_phase": "start", "access_token": token})
         video_id, upload_url = started["video_id"], started["upload_url"]
         with video.open("rb") as handle:
-            uploaded = requests.post(upload_url, data=handle, headers={"Authorization": f"OAuth {token}", "Content-Type": "application/octet-stream"}, timeout=600)
+            uploaded = requests.post(
+                upload_url,
+                data=handle,
+                headers={
+                    "Authorization": f"OAuth {token}",
+                    "offset": "0",
+                    "file_size": str(video.stat().st_size),
+                    "Content-Type": "application/octet-stream",
+                },
+                timeout=600,
+            )
         if not uploaded.ok:
             raise RuntimeError("Facebook no aceptó el archivo de vídeo.")
         finished = self._request("POST", base, data={"upload_phase": "finish", "video_id": video_id, "video_state": "PUBLISHED", "description": caption, "access_token": token})
