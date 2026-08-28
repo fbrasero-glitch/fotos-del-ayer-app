@@ -1,4 +1,4 @@
-"""Publicación del lote inicial de Shorts en la página de Facebook."""
+"""Publicación del lote experimental de Shorts en la página de Facebook."""
 from __future__ import annotations
 
 import tempfile
@@ -9,13 +9,76 @@ from dotenv import load_dotenv
 
 from services.facebook_batch import FACEBOOK_ORDER, find_batch_files, persist_batch_files
 from services.social_clients import SocialPublisher
-from youtube_upload import UPLOAD_DIR, VIDEOS
+from youtube_upload import UPLOAD_DIR
 
 
 ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(ROOT / ".env")
 
-EXPECTED = {item["key"]: item for item in VIDEOS[:4]}
+EXPECTED = {
+    "nino": {
+        "key": "nino",
+        "file": "01_nino_bravo.mp4",
+        "local_file": "proyectos_fotos/nino-bravo-la-voz-que-no-tuvo-tiempo-de-envejecer/edicion/render/short_final_con_musica.mp4",
+        "cover": "proyectos_fotos/nino-bravo-la-voz-que-no-tuvo-tiempo-de-envejecer/edicion/render/portada_9x16.jpg",
+        "title": "Nino Bravo: la voz que no tuvo tiempo de envejecer",
+        "description": (
+            "Nino Bravo apenas tuvo tiempo de descubrir hasta dónde podía llegar. "
+            "En unos pocos años pasó de perseguir un sueño en Valencia a convertirse "
+            "en una de las voces más inolvidables de España.\n\n"
+            "¿Cuál es tu canción favorita de Nino Bravo? Cuéntamelo en los comentarios. "
+            "Sigue a Fotos del Ayer para conocer las historias detrás de las imágenes "
+            "que marcaron una época.\n\n"
+            "#NinoBravo #MusicaEspañola #Nostalgia #FotosDelAyer"
+        ),
+    },
+    "lina": {
+        "key": "lina",
+        "file": "02_lina_morgan.mp4",
+        "local_file": "proyectos_fotos/lina-morgan-de-los-cartones-a-la-latina/edicion/render/short_final_con_musica.mp4",
+        "cover": "proyectos_fotos/lina-morgan-de-los-cartones-a-la-latina/edicion/render/publicacion/primer_fotograma_publicacion.jpg",
+        "title": "Lina Morgan: de recoger cartones a comprar un teatro",
+        "description": (
+            "Lina Morgan recogía cartones en las calles de Madrid y terminó comprando "
+            "el Teatro La Latina. Una historia de esfuerzo, humor, fracaso y carácter "
+            "que convirtió a una niña humilde en una de las artistas más queridas de España.\n\n"
+            "¿Recuerdas alguna película o espectáculo de Lina Morgan? Te leo. "
+            "Sigue a Fotos del Ayer para descubrir más historias de cine, teatro y televisión.\n\n"
+            "#LinaMorgan #CineEspañol #TeatroEspañol #Nostalgia #FotosDelAyer"
+        ),
+    },
+    "sara": {
+        "key": "sara",
+        "file": "03_sara_montiel.mp4",
+        "local_file": "proyectos_fotos/sara-montiel-volvio-de-hollywood-para-convertirse-en-leyenda/edicion/render/short_final_con_musica.mp4",
+        "cover": "proyectos_fotos/sara-montiel-volvio-de-hollywood-para-convertirse-en-leyenda/edicion/render/portada_9x16.jpg",
+        "title": "Sara Montiel: volvió de Hollywood para convertirse en leyenda",
+        "description": (
+            "Sara Montiel llegó a Hollywood cuando parecía imposible para una actriz "
+            "española. Pero su gran decisión fue regresar y convertirse en una leyenda "
+            "del cine y la música en España.\n\n"
+            "¿Qué película o canción de Sara Montiel recuerdas con más cariño? Déjalo en los comentarios. "
+            "Sigue a Fotos del Ayer para recordar a las grandes figuras de nuestra historia.\n\n"
+            "#SaraMontiel #CineEspañol #Nostalgia #FotosDelAyer"
+        ),
+    },
+    "durcal": {
+        "key": "durcal",
+        "file": "04_rocio_durcal.mp4",
+        "local_file": "proyectos_fotos/nina-prodigio-del-cine-espanol/edicion/render/short_final_con_musica.mp4",
+        "cover": "proyectos_fotos/nina-prodigio-del-cine-espanol/edicion/render/portada_9x16.jpg",
+        "title": "Rocío Dúrcal: la niña que se convirtió en una gran voz",
+        "description": (
+            "Rocío Dúrcal tuvo que dejar atrás la imagen de niña que la había hecho famosa. "
+            "Encontró las rancheras, cruzó el Atlántico y junto a Juan Gabriel se convirtió "
+            "en una de las voces más queridas de España y América Latina.\n\n"
+            "¿Cuál es tu canción favorita de Rocío Dúrcal? Cuéntamelo en los comentarios. "
+            "Sigue a Fotos del Ayer para descubrir más historias de artistas inolvidables.\n\n"
+            "#RocioDurcal #MusicaEspañola #Rancheras #Nostalgia #FotosDelAyer"
+        ),
+    },
+}
+EXPECTED_ITEMS = [EXPECTED[key] for key in FACEBOOK_ORDER]
 SAVED_BATCH_DIR = ROOT / "data" / "facebook_upload" / "library"
 SOURCE_SAVED = "Lote guardado"
 SOURCE_UPLOAD = "Seleccionar archivos"
@@ -28,7 +91,7 @@ def _save_and_select_saved_batch(uploaded_by_name: dict[str, object]) -> None:
 
 st.set_page_config(page_title="Fotos del Ayer · Facebook", page_icon=":material/video_library:", layout="wide")
 st.title("Fotos del Ayer · Facebook")
-st.caption("Lote inicial de cuatro reels, publicado en orden inverso al de YouTube.")
+st.caption("Lote de prueba para Facebook, en orden inverso al de YouTube.")
 
 publisher = SocialPublisher()
 connection = publisher.connection("facebook")
@@ -49,7 +112,7 @@ with st.container(border=True):
         status = result.get("status", "pendiente")
         st.write(f"{position}. **{item['title']}** · `{item['file']}` · {status}")
 
-saved_by_key = find_batch_files(EXPECTED.values(), (SAVED_BATCH_DIR, UPLOAD_DIR))
+saved_by_key = find_batch_files(EXPECTED_ITEMS, (SAVED_BATCH_DIR, UPLOAD_DIR))
 saved_complete = len(saved_by_key) == len(FACEBOOK_ORDER)
 default_source = SOURCE_SAVED if saved_complete else SOURCE_UPLOAD
 
@@ -72,15 +135,19 @@ with st.container(border=True):
         st.success("Hay un lote guardado. La app lo reutilizará automáticamente.")
         st.caption("Si cambias los vídeos, selecciona «Seleccionar archivos» y guarda el nuevo lote.")
     else:
-        uploaded_files = st.file_uploader(
-            "Selecciona los cuatro vídeos MP4",
-            type=["mp4"],
-            accept_multiple_files=True,
-            max_upload_size=200,
-            key="facebook_batch_files",
-            help="Selecciona estos archivos: 04_jackie_kennedy.mp4, 03_james_dean.mp4, 02_lady_di.mp4 y 01_marilyn_monroe.mp4.",
-        )
-        uploaded_by_name = {file.name: file for file in uploaded_files}
+        st.info("Carga cada Short en su casilla. La app lo renombrará internamente para conservar este orden.")
+        uploaded_by_name = {}
+        for position, key in enumerate(FACEBOOK_ORDER, start=1):
+            item = EXPECTED[key]
+            uploaded = st.file_uploader(
+                f"{position}. {item['title']}",
+                type=["mp4"],
+                max_upload_size=200,
+                key=f"facebook_video_{key}",
+                help="Selecciona el render final con música de este personaje.",
+            )
+            if uploaded is not None:
+                uploaded_by_name[item["file"]] = uploaded
         missing = [EXPECTED[key]["file"] for key in FACEBOOK_ORDER if EXPECTED[key]["file"] not in uploaded_by_name]
         if missing:
             st.warning("Faltan por seleccionar: " + ", ".join(missing))

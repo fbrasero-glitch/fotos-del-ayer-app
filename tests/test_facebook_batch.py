@@ -12,14 +12,15 @@ ITEMS = [{"key": key, "file": f"{index:02d}_{key}.mp4"} for index, key in enumer
 def test_find_batch_files_prefers_the_first_available_directory(tmp_path: Path):
     saved = tmp_path / "saved"
     original = tmp_path / "original"
-    (original / "03_diana.mp4").parent.mkdir(parents=True)
-    (original / "03_diana.mp4").write_bytes(b"original")
-    (saved / "03_diana.mp4").parent.mkdir(parents=True)
-    (saved / "03_diana.mp4").write_bytes(b"saved")
+    filename = ITEMS[2]["file"]
+    (original / filename).parent.mkdir(parents=True)
+    (original / filename).write_bytes(b"original")
+    (saved / filename).parent.mkdir(parents=True)
+    (saved / filename).write_bytes(b"saved")
 
     found = find_batch_files(ITEMS, (saved, original))
 
-    assert found["diana"] == saved / "03_diana.mp4"
+    assert found[ITEMS[2]["key"]] == saved / filename
 
 
 def test_persist_batch_files_writes_all_files(tmp_path: Path):
@@ -32,4 +33,4 @@ def test_persist_batch_files_writes_all_files(tmp_path: Path):
 
     assert tuple(found) == FACEBOOK_ORDER
     assert all(path.is_file() for path in found.values())
-    assert found["marilyn"].read_bytes() == b"marilyn-video"
+    assert found[FACEBOOK_ORDER[-1]].read_bytes() == f"{FACEBOOK_ORDER[-1]}-video".encode()
